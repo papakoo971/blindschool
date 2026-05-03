@@ -1,0 +1,384 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  user           @map("user")
+  schoolAdmin    @map("school_admin")
+  platformAdmin  @map("platform_admin")
+  auditor        @map("auditor")
+
+  @@map("user_role")
+}
+
+enum VerificationStatus {
+  submitted     @map("submitted")
+  autoApproved  @map("auto_approved")
+  pendingReview @map("pending_review")
+  rejected      @map("rejected")
+  approved      @map("approved")
+
+  @@map("verification_status")
+}
+
+enum PostVisibility {
+  anonymous @map("anonymous")
+  named     @map("named")
+
+  @@map("post_visibility")
+}
+
+enum ReportStatus {
+  open        @map("open")
+  underReview @map("under_review")
+  resolved    @map("resolved")
+  dismissed   @map("dismissed")
+
+  @@map("report_status")
+}
+
+enum ModerationAction {
+  warn            @map("warn")
+  mute7d          @map("mute_7d")
+  suspend30d      @map("suspend_30d")
+  banPermanent    @map("ban_permanent")
+  contentHide     @map("content_hide")
+  contentRestore  @map("content_restore")
+
+  @@map("moderation_action")
+}
+
+model School {
+  id        String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  schoolCode String? @unique @map("school_code") @db.VarChar(32)
+  name      String   @db.VarChar(255)
+  region    String?  @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  users  User[]
+  groups Group[]
+
+  @@map("schools")
+}
+
+model User {
+  id          String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  schoolId    String?   @map("school_id") @db.Uuid
+  role        UserRole  @default(user)
+  realNameEnc String    @map("real_name_enc")
+  phoneEnc    String    @map("phone_enc")
+  email       String?   @db.VarChar(255)
+  jobGroup    String?   @map("job_group") @db.VarChar(100)
+  department  String?   @db.VarChar(100)
+  isActive    Boolean   @default(true) @map("is_active")
+  lastLoginAt DateTime? @map("last_login_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  school               School?                    @relation(fields: [schoolId], references: [id])
+  anonymousProfile     AnonymousProfile?
+  verificationRequests StaffVerificationRequest[] @relation("VerificationRequestUser")
+  reviewedRequests     StaffVerificationRequest[] @relation("VerificationRequestReviewer")
+  verificationState    UserVerificationState?
+  createdGroups        Group[]                    @relation("GroupCreator")
+  groupMemberships     GroupMember[]
+  posts                Post[]                     @relation("PostAuthor")
+  comments             Comment[]                  @relation("CommentAuthor")
+  reactions            Reaction[]
+  announcements        Announcement[]             @relation("AnnouncementAuthor")
+  polls                Poll[]                     @relation("PollAuthor")
+  pollVotes            PollVote[]
+  files                File[]                     @relation("FileUploader")
+  events               Event[]                    @relation("EventCreator")
+  reports              Report[]                   @relation("ReportReporter")
+  moderationActions    ModerationLog[]            @relation("ModerationActor")
+  moderatedAsTarget    ModerationLog[]            @relation("ModerationTarget")
+  auditLogs            AuditLog[]
+
+  @@index([schoolId])
+  @@index([role])
+  @@map("users")
+}
+
+model AnonymousProfile {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId       String   @unique @map("user_id") @db.Uuid
+  anonNickname String   @map("anon_nickname") @db.VarChar(50)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("anonymous_profiles")
+}
+
+model StaffVerificationRequest {
+  id              String              @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  userId          String              @map("user_id") @db.Uuid
+  fileUrl         String              @map("file_url")
+  fileSha256      String?             @map("file_sha256") @db.Char(64)
+  fileMime        String?             @map("file_mime") @db.VarChar(100)
+  fileSizeBytes   BigInt?             @map("file_size_bytes")
+  ocrRaw          Json?               @map("ocr_raw")
+  extractedFields Json?               @map("extracted_fields")
+  score           Int?
+  status          VerificationStatus  @default(submitted)
+  rejectionReason String?             @map("rejection_reason")
+  reviewedBy      String?             @map("reviewed_by") @db.Uuid
+  reviewedAt      DateTime?           @map("reviewed_at") @db.Timestamptz(6)
+  createdAt       DateTime            @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime            @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user      User   @relation("VerificationRequestUser", fields: [userId], references: [id], onDelete: Cascade)
+  reviewer  User?  @relation("VerificationRequestReviewer", fields: [reviewedBy], references: [id])
+  stateRefs UserVerificationState[]
+
+  @@index([userId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("staff_verification_requests")
+}
+
+model UserVerificationState {
+  userId          String    @id @map("user_id") @db.Uuid
+  isVerified      Boolean   @default(false) @map("is_verified")
+  verifiedAt      DateTime? @map("verified_at") @db.Timestamptz(6)
+  latestRequestId String?   @map("latest_request_id") @db.Uuid
+  updatedAt       DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user          User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  latestRequest StaffVerificationRequest? @relation(fields: [latestRequestId], references: [id])
+
+  @@map("user_verification_state")
+}
+
+model Group {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  schoolId    String?  @map("school_id") @db.Uuid
+  name        String   @db.VarChar(120)
+  description String?
+  isOfficial  Boolean  @default(false) @map("is_official")
+  createdBy   String   @map("created_by") @db.Uuid
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  school        School?        @relation(fields: [schoolId], references: [id])
+  creator       User           @relation("GroupCreator", fields: [createdBy], references: [id])
+  members       GroupMember[]
+  posts         Post[]
+  announcements Announcement[]
+  polls         Poll[]
+  files         File[]
+  events        Event[]
+
+  @@map("groups")
+}
+
+model GroupMember {
+  groupId   String   @map("group_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  isManager Boolean  @default(false) @map("is_manager")
+  joinedAt  DateTime @default(now()) @map("joined_at") @db.Timestamptz(6)
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([groupId, userId])
+  @@map("group_members")
+}
+
+model Post {
+  id           String         @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  groupId      String?        @map("group_id") @db.Uuid
+  authorUserId String         @map("author_user_id") @db.Uuid
+  visibility   PostVisibility @default(anonymous)
+  category     String         @db.VarChar(50)
+  title        String         @db.VarChar(200)
+  body         String
+  isPinned     Boolean        @default(false) @map("is_pinned")
+  isHidden     Boolean        @default(false) @map("is_hidden")
+  createdAt    DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  group     Group?     @relation(fields: [groupId], references: [id])
+  author    User       @relation("PostAuthor", fields: [authorUserId], references: [id])
+  comments  Comment[]
+  reactions Reaction[]
+
+  @@index([groupId, createdAt])
+  @@index([category, createdAt])
+  @@index([isHidden])
+  @@map("posts")
+}
+
+model Comment {
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  postId          String   @map("post_id") @db.Uuid
+  authorUserId    String   @map("author_user_id") @db.Uuid
+  parentCommentId String?  @map("parent_comment_id") @db.Uuid
+  body            String
+  isHidden        Boolean  @default(false) @map("is_hidden")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  post     Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author   User      @relation("CommentAuthor", fields: [authorUserId], references: [id])
+  parent   Comment?  @relation("CommentThread", fields: [parentCommentId], references: [id], onDelete: Cascade)
+  children Comment[] @relation("CommentThread")
+
+  @@index([postId, createdAt])
+  @@map("comments")
+}
+
+model Reaction {
+  postId       String   @map("post_id") @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  reactionType String   @default("helpful") @map("reaction_type") @db.VarChar(30)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId, reactionType])
+  @@map("reactions")
+}
+
+model Announcement {
+  id           String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  groupId      String?  @map("group_id") @db.Uuid
+  authorUserId String   @map("author_user_id") @db.Uuid
+  title        String   @db.VarChar(200)
+  body         String
+  isImportant  Boolean  @default(false) @map("is_important")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  group  Group? @relation(fields: [groupId], references: [id])
+  author User   @relation("AnnouncementAuthor", fields: [authorUserId], references: [id])
+
+  @@map("announcements")
+}
+
+model Poll {
+  id              String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  groupId         String?  @map("group_id") @db.Uuid
+  authorUserId    String   @map("author_user_id") @db.Uuid
+  title           String   @db.VarChar(200)
+  closesAt        DateTime @map("closes_at") @db.Timestamptz(6)
+  isAnonymousVote Boolean  @default(true) @map("is_anonymous_vote")
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  group   Group?       @relation(fields: [groupId], references: [id])
+  author  User         @relation("PollAuthor", fields: [authorUserId], references: [id])
+  options PollOption[]
+  votes   PollVote[]
+
+  @@map("polls")
+}
+
+model PollOption {
+  id         String @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  pollId     String @map("poll_id") @db.Uuid
+  optionText String @map("option_text") @db.VarChar(200)
+
+  poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+
+  @@map("poll_options")
+}
+
+model PollVote {
+  pollId    String   @map("poll_id") @db.Uuid
+  optionId  String   @map("option_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([pollId, userId])
+  @@map("poll_votes")
+}
+
+model File {
+  id            String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  groupId       String?  @map("group_id") @db.Uuid
+  uploaderUserId String  @map("uploader_user_id") @db.Uuid
+  originalName  String   @map("original_name") @db.VarChar(255)
+  fileUrl       String   @map("file_url")
+  fileSizeBytes BigInt?  @map("file_size_bytes")
+  mimeType      String?  @map("mime_type") @db.VarChar(100)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  group    Group? @relation(fields: [groupId], references: [id])
+  uploader User   @relation("FileUploader", fields: [uploaderUserId], references: [id])
+
+  @@map("files")
+}
+
+model Event {
+  id            String    @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  groupId       String?   @map("group_id") @db.Uuid
+  creatorUserId String    @map("creator_user_id") @db.Uuid
+  title         String    @db.VarChar(200)
+  description   String?
+  startsAt      DateTime  @map("starts_at") @db.Timestamptz(6)
+  endsAt        DateTime? @map("ends_at") @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  group   Group? @relation(fields: [groupId], references: [id])
+  creator User   @relation("EventCreator", fields: [creatorUserId], references: [id])
+
+  @@map("events")
+}
+
+model Report {
+  id             String       @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  reporterUserId String       @map("reporter_user_id") @db.Uuid
+  targetType     String       @map("target_type") @db.VarChar(30)
+  targetId       String       @map("target_id") @db.Uuid
+  reasonCode     String       @map("reason_code") @db.VarChar(50)
+  reasonDetail   String?      @map("reason_detail")
+  status         ReportStatus @default(open)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  reporter User @relation("ReportReporter", fields: [reporterUserId], references: [id])
+
+  @@index([status, createdAt])
+  @@map("reports")
+}
+
+model ModerationLog {
+  id            String           @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  actorUserId   String           @map("actor_user_id") @db.Uuid
+  targetUserId  String?          @map("target_user_id") @db.Uuid
+  targetType    String?          @map("target_type") @db.VarChar(30)
+  targetId      String?          @map("target_id") @db.Uuid
+  action        ModerationAction
+  note          String?
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  actor User  @relation("ModerationActor", fields: [actorUserId], references: [id])
+  target User? @relation("ModerationTarget", fields: [targetUserId], references: [id])
+
+  @@map("moderation_logs")
+}
+
+model AuditLog {
+  id          String   @id @default(dbgenerated("uuid_generate_v4()")) @db.Uuid
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  eventName   String   @map("event_name") @db.VarChar(100)
+  eventMeta   Json?    @map("event_meta")
+  ipHash      String?  @map("ip_hash") @db.VarChar(128)
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  actor User? @relation(fields: [actorUserId], references: [id])
+
+  @@index([eventName, createdAt])
+  @@map("audit_logs")
+}

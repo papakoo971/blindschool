@@ -124,11 +124,11 @@ MVP는 빠른 검증을 위해 단일 Next.js 앱으로 시작합니다.
 
 ## 다음 작업 체크리스트
 
-- [ ] Next.js 프로젝트 생성
+- [x] Next.js 프로젝트 생성
 - [ ] PostgreSQL 연결 설정
-- [ ] Prisma schema 작성
+- [x] Prisma schema 작성
 - [ ] `001_init_staff_community.sql` 적용 방식 결정
-- [ ] 인증 점수 계산 단위 테스트 작성
+- [x] 인증 점수 계산 단위 테스트 작성
 - [ ] 파일 업로드 제한과 MIME 검사 구현
 - [ ] 운영자 인증 검토 큐 구현
 - [ ] 익명 게시판 CRUD 구현
