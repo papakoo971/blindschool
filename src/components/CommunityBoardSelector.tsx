@@ -2,9 +2,16 @@
 
 import { useMemo, useState } from "react";
 
+const ALL_JOB_GROUPS = "all_job_groups";
 const ALL_REGIONS = "전체";
+const ALL_SCHOOL_LEVELS = "all_school_levels";
 
 const jobGroups = [
+  {
+    id: ALL_JOB_GROUPS,
+    label: "전체",
+    description: "교원과 행정직 게시판 전체",
+  },
   {
     id: "teacher",
     label: "교원",
@@ -37,6 +44,18 @@ const regions = [
   "인천",
 ];
 
+const schoolLevels = [
+  { id: ALL_SCHOOL_LEVELS, label: "전체" },
+  { id: "elementary", label: "초" },
+  { id: "middle", label: "중" },
+  { id: "high", label: "고" },
+];
+
+const jobGroupSortOrder = {
+  teacher: 0,
+  administrative_staff: 1,
+} as Record<string, number>;
+
 const regionSortOrder = regions
   .filter((region) => region !== ALL_REGIONS)
   .reduce<Record<string, number>>((order, region, index) => {
@@ -44,11 +63,11 @@ const regionSortOrder = regions
     return order;
   }, {});
 
-const schoolLevels = [
-  { id: "elementary", label: "초" },
-  { id: "middle", label: "중" },
-  { id: "high", label: "고" },
-];
+const schoolLevelSortOrder = {
+  elementary: 0,
+  middle: 1,
+  high: 2,
+} as Record<string, number>;
 
 const samplePosts = [
   {
@@ -116,46 +135,51 @@ const samplePosts = [
   },
 ];
 
+function getJobGroupLabel(jobGroupId: string) {
+  return jobGroups.find((group) => group.id === jobGroupId)?.label ?? jobGroupId;
+}
+
 function getSchoolLevelLabel(levelId: string) {
   return schoolLevels.find((level) => level.id === levelId)?.label ?? levelId;
 }
 
-function comparePostsByRegion(
-  first: (typeof samplePosts)[number],
-  second: (typeof samplePosts)[number],
-) {
-  return (regionSortOrder[first.region] ?? 999) - (regionSortOrder[second.region] ?? 999);
+function comparePosts(first: (typeof samplePosts)[number], second: (typeof samplePosts)[number]) {
+  return (
+    (jobGroupSortOrder[first.jobGroup] ?? 999) - (jobGroupSortOrder[second.jobGroup] ?? 999) ||
+    (schoolLevelSortOrder[first.schoolLevel] ?? 999) - (schoolLevelSortOrder[second.schoolLevel] ?? 999) ||
+    (regionSortOrder[first.region] ?? 999) - (regionSortOrder[second.region] ?? 999)
+  );
 }
 
 export function CommunityBoardSelector() {
-  const [jobGroup, setJobGroup] = useState("teacher");
+  const [jobGroup, setJobGroup] = useState(ALL_JOB_GROUPS);
   const [region, setRegion] = useState(ALL_REGIONS);
-  const [schoolLevel, setSchoolLevel] = useState("elementary");
-
-  const selectedJobGroup = jobGroups.find((group) => group.id === jobGroup);
-  const schoolLevelLabel = getSchoolLevelLabel(schoolLevel);
+  const [schoolLevel, setSchoolLevel] = useState(ALL_SCHOOL_LEVELS);
 
   const visiblePosts = useMemo(
     () =>
       samplePosts
         .filter(
           (post) =>
-            post.jobGroup === jobGroup &&
-            post.schoolLevel === schoolLevel &&
+            (jobGroup === ALL_JOB_GROUPS || post.jobGroup === jobGroup) &&
+            (schoolLevel === ALL_SCHOOL_LEVELS || post.schoolLevel === schoolLevel) &&
             (region === ALL_REGIONS || post.region === region),
         )
-        .sort(comparePostsByRegion),
+        .sort(comparePosts),
     [jobGroup, region, schoolLevel],
   );
 
+  const boardJobGroupLabel = jobGroup === ALL_JOB_GROUPS ? "전체 직군" : getJobGroupLabel(jobGroup);
   const boardRegionLabel = region === ALL_REGIONS ? "전체 지역" : region;
+  const boardSchoolLevelLabel =
+    schoolLevel === ALL_SCHOOL_LEVELS ? "전체 학교급" : getSchoolLevelLabel(schoolLevel);
 
   return (
     <section className="board-selector" aria-label="커뮤니티 게시판 선택">
       <article className="board-controls">
         <div>
           <p className="eyebrow">직군</p>
-          <div className="choice-grid two">
+          <div className="choice-grid three">
             {jobGroups.map((group) => (
               <button
                 className={group.id === jobGroup ? "choice active" : "choice"}
@@ -188,7 +212,7 @@ export function CommunityBoardSelector() {
 
         <div>
           <p className="eyebrow">학교급</p>
-          <div className="choice-grid three">
+          <div className="choice-grid four">
             {schoolLevels.map((level) => (
               <button
                 className={level.id === schoolLevel ? "choice active" : "choice"}
@@ -208,12 +232,10 @@ export function CommunityBoardSelector() {
           <div>
             <p className="eyebrow">선택된 게시판</p>
             <h2>
-              {selectedJobGroup?.label} · {boardRegionLabel} · {schoolLevelLabel}
+              {boardJobGroupLabel} · {boardRegionLabel} · {boardSchoolLevelLabel}
             </h2>
           </div>
-          <span className="status-pill quiet">
-            {region === ALL_REGIONS ? "전체 지역 정렬" : "지역/학교급 표시"}
-          </span>
+          <span className="status-pill quiet">전체 필터 지원</span>
         </div>
 
         {visiblePosts.length > 0 ? (
@@ -221,7 +243,7 @@ export function CommunityBoardSelector() {
             {visiblePosts.map((post) => (
               <article className="post-item" key={post.title}>
                 <span>
-                  {post.category} · {selectedJobGroup?.label} · {getSchoolLevelLabel(post.schoolLevel)} · {post.region}
+                  {post.category} · {getJobGroupLabel(post.jobGroup)} · {getSchoolLevelLabel(post.schoolLevel)} · {post.region}
                 </span>
                 <h2>{post.title}</h2>
                 <p>익명 · 도움됨 표시 예정 · 신고 기능 예정</p>
