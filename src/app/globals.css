@@ -343,13 +343,17 @@ button {
 
 .board-controls {
   display: grid;
-  gap: 16px;
-  padding: 14px;
+  gap: 8px;
+  padding: 12px;
+}
+
+.board-controls .eyebrow {
+  margin-bottom: 4px;
 }
 
 .choice-grid {
   display: grid;
-  gap: 6px;
+  gap: 5px;
 }
 
 .choice-grid.two {
@@ -370,14 +374,14 @@ button {
 
 .choice {
   display: grid;
-  gap: 3px;
-  min-height: 34px;
+  gap: 2px;
+  min-height: 32px;
   border: 1px solid var(--line);
   border-radius: 7px;
   background: #fff;
   color: #3a443e;
   font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
-  padding: 7px 8px;
+  padding: 6px 7px;
   text-align: left;
 }
 
@@ -395,7 +399,7 @@ button {
 .choice span {
   color: var(--muted);
   font-size: 10px;
-  line-height: 1.35;
+  line-height: 1.25;
 }
 
 .choice.chip {
