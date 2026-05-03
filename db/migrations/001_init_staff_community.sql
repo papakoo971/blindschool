@@ -4,7 +4,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
-    CREATE TYPE user_role AS ENUM ('user', 'school_admin', 'platform_admin', 'auditor');
+    CREATE TYPE user_role AS ENUM ('user', 'platform_admin', 'auditor');
   END IF;
 
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'verification_status') THEN
@@ -39,7 +39,9 @@ CREATE TABLE IF NOT EXISTS users (
   role user_role NOT NULL DEFAULT 'user',
   real_name_enc TEXT NOT NULL,
   phone_enc TEXT NOT NULL,
-  email VARCHAR(255),
+  phone_verified_at TIMESTAMPTZ,
+  email VARCHAR(255) NOT NULL UNIQUE,
+  password_hash TEXT NOT NULL,
   job_group VARCHAR(100),
   department VARCHAR(100),
   is_active BOOLEAN NOT NULL DEFAULT TRUE,

@@ -9,7 +9,6 @@ datasource db {
 
 enum UserRole {
   user           @map("user")
-  schoolAdmin    @map("school_admin")
   platformAdmin  @map("platform_admin")
   auditor        @map("auditor")
 
@@ -73,7 +72,9 @@ model User {
   role        UserRole  @default(user)
   realNameEnc String    @map("real_name_enc")
   phoneEnc    String    @map("phone_enc")
-  email       String?   @db.VarChar(255)
+  phoneVerifiedAt DateTime? @map("phone_verified_at") @db.Timestamptz(6)
+  email       String    @unique @db.VarChar(255)
+  passwordHash String   @map("password_hash")
   jobGroup    String?   @map("job_group") @db.VarChar(100)
   department  String?   @db.VarChar(100)
   isActive    Boolean   @default(true) @map("is_active")
