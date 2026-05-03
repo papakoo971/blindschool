@@ -30,4 +30,5 @@ blindschool은 한국 교직원을 대상으로 합니다. 학생과 학부모�
 - [MVP next steps](docs/mvp_next_steps.md)
 - [Implementation start](docs/implementation_start.md)
 - [Auth and session plan](docs/auth_session_plan.md)
+- [Test account](docs/test_account.md)
 - [Initial DB migration](db/migrations/001_init_staff_community.sql)
