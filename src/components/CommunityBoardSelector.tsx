@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 
+const ALL_REGIONS = "전체";
+
 const jobGroups = [
   {
     id: "teacher",
@@ -16,6 +18,7 @@ const jobGroups = [
 ];
 
 const regions = [
+  ALL_REGIONS,
   "서울",
   "경기",
   "강원",
@@ -34,6 +37,13 @@ const regions = [
   "인천",
 ];
 
+const regionSortOrder = regions
+  .filter((region) => region !== ALL_REGIONS)
+  .reduce<Record<string, number>>((order, region, index) => {
+    order[region] = index;
+    return order;
+  }, {});
+
 const schoolLevels = [
   { id: "elementary", label: "초" },
   { id: "middle", label: "중" },
@@ -44,44 +54,65 @@ const samplePosts = [
   {
     jobGroup: "teacher",
     region: "서울",
-    schoolLevel: "초",
+    schoolLevel: "elementary",
     category: "학교문화",
     title: "학년 협의 자료가 한 곳에 모이면 신규 교사 적응이 빨라질 것 같습니다.",
   },
   {
     jobGroup: "teacher",
     region: "경북",
-    schoolLevel: "고",
+    schoolLevel: "high",
     category: "제도개선",
     title: "고사 기간 업무 분장 기준을 사전에 공유했으면 합니다.",
   },
   {
     jobGroup: "teacher",
     region: "대구",
-    schoolLevel: "중",
+    schoolLevel: "middle",
     category: "고충",
     title: "생활지도 민원 대응 매뉴얼이 학교마다 너무 다릅니다.",
   },
   {
+    jobGroup: "teacher",
+    region: "경기",
+    schoolLevel: "elementary",
+    category: "수업/학사",
+    title: "학년 초 평가 계획 예시를 지역별로 공유하면 도움이 됩니다.",
+  },
+  {
+    jobGroup: "teacher",
+    region: "부산",
+    schoolLevel: "elementary",
+    category: "제도개선",
+    title: "초등 돌봄 관련 협의 자료를 한 게시판에서 보고 싶습니다.",
+  },
+  {
     jobGroup: "administrative_staff",
     region: "경기",
-    schoolLevel: "초",
+    schoolLevel: "elementary",
     category: "행정업무",
     title: "계약 서류 체크리스트를 지역별로 공유하면 실무 부담이 줄어듭니다.",
   },
   {
     jobGroup: "administrative_staff",
     region: "부산",
-    schoolLevel: "고",
+    schoolLevel: "high",
     category: "시설/예산",
     title: "시설 민원 접수와 처리 이력을 업무 허브와 연결했으면 합니다.",
   },
   {
     jobGroup: "administrative_staff",
     region: "충남",
-    schoolLevel: "중",
+    schoolLevel: "middle",
     category: "인사/복무",
     title: "복무 관련 반복 문의를 모아볼 수 있는 고정 게시판이 필요합니다.",
+  },
+  {
+    jobGroup: "administrative_staff",
+    region: "서울",
+    schoolLevel: "elementary",
+    category: "회계",
+    title: "초등학교 회계 마감 체크리스트를 공유할 수 있으면 좋겠습니다.",
   },
 ];
 
@@ -89,9 +120,16 @@ function getSchoolLevelLabel(levelId: string) {
   return schoolLevels.find((level) => level.id === levelId)?.label ?? levelId;
 }
 
+function comparePostsByRegion(
+  first: (typeof samplePosts)[number],
+  second: (typeof samplePosts)[number],
+) {
+  return (regionSortOrder[first.region] ?? 999) - (regionSortOrder[second.region] ?? 999);
+}
+
 export function CommunityBoardSelector() {
   const [jobGroup, setJobGroup] = useState("teacher");
-  const [region, setRegion] = useState("서울");
+  const [region, setRegion] = useState(ALL_REGIONS);
   const [schoolLevel, setSchoolLevel] = useState("elementary");
 
   const selectedJobGroup = jobGroups.find((group) => group.id === jobGroup);
@@ -99,14 +137,18 @@ export function CommunityBoardSelector() {
 
   const visiblePosts = useMemo(
     () =>
-      samplePosts.filter(
-        (post) =>
-          post.jobGroup === jobGroup &&
-          post.region === region &&
-          post.schoolLevel === schoolLevel,
-      ),
+      samplePosts
+        .filter(
+          (post) =>
+            post.jobGroup === jobGroup &&
+            post.schoolLevel === schoolLevel &&
+            (region === ALL_REGIONS || post.region === region),
+        )
+        .sort(comparePostsByRegion),
     [jobGroup, region, schoolLevel],
   );
+
+  const boardRegionLabel = region === ALL_REGIONS ? "전체 지역" : region;
 
   return (
     <section className="board-selector" aria-label="커뮤니티 게시판 선택">
@@ -166,10 +208,12 @@ export function CommunityBoardSelector() {
           <div>
             <p className="eyebrow">선택된 게시판</p>
             <h2>
-              {selectedJobGroup?.label} · {region} · {schoolLevelLabel}
+              {selectedJobGroup?.label} · {boardRegionLabel} · {schoolLevelLabel}
             </h2>
           </div>
-          <span className="status-pill quiet">지역/학교급 표시</span>
+          <span className="status-pill quiet">
+            {region === ALL_REGIONS ? "전체 지역 정렬" : "지역/학교급 표시"}
+          </span>
         </div>
 
         {visiblePosts.length > 0 ? (
