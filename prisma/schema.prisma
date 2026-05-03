@@ -163,6 +163,9 @@ model Group {
   schoolId    String?  @map("school_id") @db.Uuid
   name        String   @db.VarChar(120)
   description String?
+  audienceJobGroup String? @map("audience_job_group") @db.VarChar(40)
+  region      String?  @db.VarChar(40)
+  schoolLevel String?  @map("school_level") @db.VarChar(20)
   isOfficial  Boolean  @default(false) @map("is_official")
   createdBy   String   @map("created_by") @db.Uuid
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -177,6 +180,7 @@ model Group {
   events        Event[]
 
   @@map("groups")
+  @@index([audienceJobGroup, region, schoolLevel])
 }
 
 model GroupMember {

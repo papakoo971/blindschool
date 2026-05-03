@@ -326,6 +326,101 @@ button {
   padding: 8px 12px;
 }
 
+.board-selector {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.18fr);
+}
+
+.board-controls,
+.selected-board,
+.empty-board {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow);
+}
+
+.board-controls {
+  display: grid;
+  gap: 24px;
+  padding: 22px;
+}
+
+.choice-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.choice-grid.two {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.choice-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.choice-grid.regions {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.choice {
+  display: grid;
+  gap: 6px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: #3a443e;
+  font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  padding: 12px;
+  text-align: left;
+}
+
+.choice:hover,
+.choice.active {
+  border-color: rgba(47, 111, 78, 0.45);
+  background: var(--green-soft);
+}
+
+.choice strong {
+  color: var(--ink);
+  font-size: 15px;
+}
+
+.choice span {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.choice.chip {
+  place-items: center;
+  min-height: 38px;
+  padding: 8px;
+  text-align: center;
+}
+
+.selected-board {
+  padding: 22px;
+}
+
+.empty-board {
+  box-shadow: none;
+  padding: 22px;
+}
+
+.empty-board strong,
+.empty-board p {
+  font-family: "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+}
+
+.empty-board p {
+  color: var(--muted);
+  line-height: 1.7;
+  margin-bottom: 0;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 260px minmax(0, 1fr);
@@ -676,7 +771,8 @@ h3 {
   .public-hero,
   .public-section,
   .learning-section,
-  .status-timeline {
+  .status-timeline,
+  .board-selector {
     grid-template-columns: 1fr;
   }
 
@@ -768,7 +864,10 @@ h3 {
 
   .work-row,
   .review-row,
-  .rule-row {
+  .rule-row,
+  .choice-grid.two,
+  .choice-grid.three,
+  .choice-grid.regions {
     grid-template-columns: 1fr;
   }
 

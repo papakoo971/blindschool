@@ -95,10 +95,15 @@ CREATE TABLE IF NOT EXISTS groups (
   school_id UUID REFERENCES schools(id),
   name VARCHAR(120) NOT NULL,
   description TEXT,
+  audience_job_group VARCHAR(40),
+  region VARCHAR(40),
+  school_level VARCHAR(20),
   is_official BOOLEAN NOT NULL DEFAULT FALSE,
   created_by UUID NOT NULL REFERENCES users(id),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+CREATE INDEX IF NOT EXISTS idx_groups_audience_region_level ON groups(audience_job_group, region, school_level);
 
 CREATE TABLE IF NOT EXISTS group_members (
   group_id UUID NOT NULL REFERENCES groups(id) ON DELETE CASCADE,
